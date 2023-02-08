@@ -4,10 +4,29 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.support.ui import Select
+# from selenium.webdriver.common.keys import Keys
+# from selenium.webdriver.support.ui import Select
+from selenium.common.exceptions import NoSuchElementException, NoSuchWindowException
 import base64
 import time
+
+def getAccounting():
+    with open('accounting.txt', 'r') as txt_accounting:
+        varAccount = (txt_accounting.readline()).split('|')
+
+    return varAccount
+
+def ShowTaxCodes():
+    showTaxCodes = {
+        "0106520697":{"Name": "kcoffee","CompanyName":"CÔNG TY TNHH WA COFFEE","Address":"B007,B008,B009 tháp The Manor, đường Mễ Trì, phường Mỹ Đình 1, Q.Nam Từ Liêm, Hà Nội"},
+        "0107975898":{"Name": "dart","Company":"CÔNG TY CỔ PHẦN D'ART","Address":"Số 41 ngõ 40 phố Ngụy Như Kon Tum, Phường Nhân Chính, Quận Thanh Xuân, TP Hà Nội, Việt Nam"},
+        "0109704124":{"Name": "trangj","Company":"CÔNG TY TNHH DỊCH VỤ VÀ THƯƠNG MẠI JH TRANG","Address":"Số nhà 9b, ngõ 39 Đình Thôn, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Thành phố Hà Nội, Việt Nam"},
+        "2300979534":{"Name": "sonsan","Company":"Công Ty TNHH Một Thành Viên Sơn San","Address":"211 Nguyễn Cao, Phường Ninh Xá, Thành phố Bắc Ninh, Tỉnh Bắc Ninh"}}
+
+    for key, values in showTaxCodes.items():
+        print(f"{key}")
+        for k,v in values.items():
+            print(f"\t{k}: {v}")
 
 def Login(pathExcel, Workbook_Active):
     driver.get(urlLogin)
@@ -29,14 +48,14 @@ def Login(pathExcel, Workbook_Active):
         WebDriverWait(driver, 60).until(EC.title_contains("Hóa đơn điện tử"))
     except TimeoutError as e:
         pass
-
-def FillItems():
+    
     try:
         driver.get(urlInvoice)
         WebDriverWait(driver, 10).until(EC.title_contains("Tạo mới hóa đơn"))
     except TimeoutError as e:
         driver.quit()
 
+def FillItemsNewInvoice():
     for itemInvoiceParrent in range(1, count_row):
         if itemInvoiceParrent >= 90:
             time.sleep(2)
@@ -83,8 +102,7 @@ def ShowSignOption():
     for item in Sign:
         print(f"{item}: {Sign[item]}")
 """
-def SelectSignOption():
-
+def SelectSignOptionNewInvoice():
     signOption = 2
     try:
         xpathSign = f'''//*[@id="Serial"]/option[{signOption}]'''
@@ -108,8 +126,7 @@ def ShowPaymentOption():
     for item in Payment:
         print(f"{item}: {Payment[item]}")
 """
-def SelectPaymentOption():
-
+def SelectPaymentOptionNewInvoice():
     paymentOption = 5
     try:
         xpathPayment = f'''//*[@id="PaymentMethod"]/option[{paymentOption+1}]'''
@@ -118,20 +135,31 @@ def SelectPaymentOption():
     except TimeoutError:
         driver.quit()
 
+def SetTaxCode():
+    # Fill Tax Code
+    taxcodeNumber = driver.find_element(By.ID, "CusTaxCode")
+    taxcodeNumber.clear()
+    taxcodeNumber.send_keys(taxcode)
+    
+    # Alert after fill Tax Code
+    driver.find_element(By.ID, "GetInforTax").click()
+    WebDriverWait(driver, 10).until(EC.alert_is_present())
+    driver.switch_to.alert.accept()
+
 if "__main__":
+    Usr, p4ssb64 = getAccounting()
+    ShowTaxCodes()
+    taxcode = input("Enter a Tax Code: ")
+    
     # ========== Excel ==========
     pathExcel = "Hoadonrau.xlsx"
     Workbook_Active = "Sheet1"
     
     # ========== Browser ==========
-    # global Usr, p4ssb64
-    Usr = ""
-    p4ssb64 = ""
-
     # url login form
-    urlLogin = ""
+    urlLogin = "https://8667756621-001-tt78cadmin.vnpt-invoice.com.vn/"
     # url create new Invoice
-    urlInvoice = f""+"2/001"
+    urlInvoice = f"https://8667756621-001-tt78cadmin.vnpt-invoice.com.vn/EInvoice/create?Pattern="+"2/001"
     
     # Excel Process
     wb = load_workbook(pathExcel)
@@ -141,10 +169,17 @@ if "__main__":
     count_column = ws.max_column
     print(f"Max Row: {count_row} | Max Column: {count_column}")
     time.sleep(1)
-
-    driver = webdriver.Chrome()
-    Login(pathExcel, Workbook_Active)
-    FillItems()
-    SelectSignOption()
-    SelectPaymentOption()
-    time.sleep(6000)
+    try:
+        driver = webdriver.Chrome()
+        Login(pathExcel, Workbook_Active)
+        FillItemsNewInvoice()
+        SetTaxCode()
+        SelectSignOptionNewInvoice()
+        SelectPaymentOptionNewInvoice()
+        time.sleep(6000)
+    except TimeoutError as te:
+        print(te)
+    except NoSuchElementException as exc:
+        print(exc)
+    except NoSuchWindowException:
+        print("Target window already closed")
