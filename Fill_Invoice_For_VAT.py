@@ -162,7 +162,7 @@ if "__main__":
     urlInvoice = f"https://8667756621-001-tt78cadmin.vnpt-invoice.com.vn/EInvoice/create?Pattern="+"2/001"
     
     # Excel Process
-    wb = load_workbook(pathExcel)
+    wb = load_workbook(pathExcel, data_only=True)
     ws = wb[Workbook_Active]
     
     count_row = ws.max_row
